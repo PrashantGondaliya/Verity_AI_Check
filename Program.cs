@@ -3,15 +3,23 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Xml.Linq;
+using Microsoft.AspNetCore.DataProtection;
 
 var builder = WebApplication.CreateBuilder(args);
+var localDataPath = Path.Combine(builder.Environment.ContentRootPath, "App_Data");
+Directory.CreateDirectory(localDataPath);
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+builder.Services.AddDataProtection().PersistKeysToFileSystem(new DirectoryInfo(Path.Combine(localDataPath, "keys")));
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options => { options.IdleTimeout = TimeSpan.FromHours(2); options.Cookie.HttpOnly = true; options.Cookie.IsEssential = true; });
 builder.Services.AddSingleton<DataStore>();
 var app = builder.Build();
 app.UseSession();
-app.UseDefaultFiles();
-app.UseStaticFiles();
+app.MapGet("/", () => Results.File(Path.Combine(app.Environment.ContentRootPath, "index.html"), "text/html"));
+app.MapGet("/styles.css", () => Results.File(Path.Combine(app.Environment.ContentRootPath, "styles.css"), "text/css"));
+app.MapGet("/mvp.css", () => Results.File(Path.Combine(app.Environment.ContentRootPath, "mvp.css"), "text/css"));
+app.MapGet("/app.js", () => Results.File(Path.Combine(app.Environment.ContentRootPath, "app.js"), "text/javascript"));
 
 app.MapGet("/api/me", (HttpContext ctx) => Results.Ok(new { signedIn = ctx.Session.GetString("userId") is not null, name = ctx.Session.GetString("userName") }));
 
@@ -35,7 +43,7 @@ app.MapPost("/api/analyse", async (HttpContext ctx, HttpRequest request, DataSto
     return Results.Ok(report);
 });
 
-app.MapPost("/api/auth/register", async (HttpContext ctx, Credentials input, DataStore store) =>
+app.MapPost("/api/auth/register", (HttpContext ctx, Credentials input, DataStore store) =>
 {
     if (string.IsNullOrWhiteSpace(input.Name) || !input.Email.Contains('@') || input.Password.Length < 8)
         return Results.BadRequest(new { error = "Use your name, a valid email, and a password of at least 8 characters." });
@@ -140,7 +148,7 @@ class DataStore
     public DataStore(IWebHostEnvironment env) { var directory = Path.Combine(env.ContentRootPath, "App_Data"); Directory.CreateDirectory(directory); path = Path.Combine(directory, "verity-data.json"); data = File.Exists(path) ? JsonSerializer.Deserialize<StoreData>(File.ReadAllText(path)) ?? new StoreData() : new StoreData(); }
     public UserRecord? CreateUser(string name, string email, string password) { lock (gate) { if (data.Users.Any(u => u.Email == email)) return null; var user = new UserRecord { Id = Guid.NewGuid().ToString("N"), Name = name, Email = email, PasswordHash = Passwords.Hash(password) }; data.Users.Add(user); Save(); return user; } }
     public UserRecord? Validate(string email, string password) { lock (gate) { var user = data.Users.FirstOrDefault(u => u.Email == email); return user is not null && Passwords.Verify(password, user.PasswordHash) ? user : null; } }
-    public void SaveReport(string userId, Report report) { lock (gate) { if (!data.Reports.Any(r => r.Id == report.Id)) { data.Reports.Add(new StoredReport { UserId = userId, Report = report }); Save(); } } }
+    public void SaveReport(string userId, Report report) { lock (gate) { if (!data.Reports.Any(r => r.Report.Id == report.Id)) { data.Reports.Add(new StoredReport { UserId = userId, Report = report }); Save(); } } }
     public IEnumerable<Report> GetReports(string userId) { lock (gate) return data.Reports.Where(r => r.UserId == userId).Select(r => r.Report).OrderByDescending(r => r.CreatedAt).Take(20).ToList(); }
     void Save() => File.WriteAllText(path, JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true }));
 }

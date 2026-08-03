@@ -3,3 +3,10 @@ obj/
 App_Data/
 .dotnet/
 .dotnet-sdk.zip
+.dotnet-home/
+.nuget-packages/
+.appdata/
+.localappdata/
+.idea/
+dotnet-install.ps1
+server*.log
