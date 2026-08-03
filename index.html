@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Verity | Writing clarity for students</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" /><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Playfair+Display:ital,wght@600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" /><link rel="stylesheet" href="mvp.css" />
+</head>
+<body>
+<div class="app-shell">
+  <header class="topbar"><a class="brand" href="#"><span class="brand-mark">v</span><span>verity</span></a><nav aria-label="Main navigation"><a class="active" href="#workspace">Workspace</a><a href="#history">History</a><a href="#learn">Learn</a></nav><div class="profile" id="profile"><span class="guest-label">Guest session</span><button id="open-auth" class="header-auth">Sign in</button></div></header>
+  <main id="workspace">
+    <section class="hero"><div><p class="eyebrow">STUDENT WRITING COMPANION</p><h1>Write with<br /><em>confidence.</em></h1></div><p class="hero-copy">Check your work for patterns that may be read as AI-generated—then make it unmistakably your own.</p></section>
+    <section class="workspace-grid" aria-label="Document analysis workspace">
+      <div class="composer card"><div class="card-title"><div><p class="label">YOUR DOCUMENT</p><h2>Run a writing check</h2></div><span class="privacy"><span></span>Guest work is not saved</span></div>
+        <div id="dropzone" class="dropzone" tabindex="0" role="button" aria-label="Upload document"><div class="upload-icon">↑</div><p><strong id="upload-label">Drop your file here</strong> or <button id="browse" type="button">browse files</button></p><small>DOCX, TXT, MD or paste text below · Max 20 MB</small><input id="file-input" type="file" accept=".txt,.md,.docx" hidden /></div>
+        <div class="divider"><span>OR</span></div><label class="sr-only" for="text-input">Paste your writing</label><textarea id="text-input" placeholder="Paste your essay, thesis section, or assignment here…"></textarea>
+        <div class="composer-footer"><span id="word-count">0 words</span><button id="analyze" class="primary" type="button">Analyse writing <span>→</span></button></div><p class="disclaimer">Verity identifies writing patterns—not authorship. It never provides proof that AI was used.</p>
+      </div>
+      <aside class="side-panel"><div class="tip card"><div class="tip-symbol">✦</div><div><p class="label">PRIVATE BY DEFAULT</p><h3>Check without an account</h3><p>Your guest analysis stays in this browser session. Create an account only when you want to save reports or use revision support.</p><button class="text-link" data-open-auth>Learn what accounts unlock <span>→</span></button></div></div>
+      <div class="recent card" id="history"><div class="recent-head"><div><p class="label">YOUR CHECKS</p><h3 id="history-title">Nothing saved yet</h3></div></div><div id="history-list" class="empty-history">Sign in to save reports and revisit them later.</div><button id="history-auth" class="all-history" data-open-auth>Sign in or create an account <span>→</span></button></div></aside>
+    </section>
+    <section class="how-it-works" id="learn"><p class="eyebrow">A BETTER WAY TO CHECK</p><h2>Support for your voice,<br />not a score to fear.</h2><div class="steps"><article><span>01</span><h3>Add your work</h3><p>Upload a document or paste a section of writing.</p></article><article><span>02</span><h3>See the signals</h3><p>We highlight patterns to examine and explain what they mean.</p></article><article><span>03</span><h3>Refine with clarity</h3><p>Use practical prompts to strengthen your own writing voice.</p></article></div></section>
+  </main>
+</div>
+<section class="results-overlay" id="results" aria-hidden="true"><div class="result-modal"><button id="close-results" class="close" aria-label="Close results">×</button><p class="eyebrow">WRITING CHECK COMPLETE</p><h2>Here’s your writing snapshot.</h2><div class="score-area"><div class="score-ring"><strong id="score">24</strong><span>risk signal</span></div><div><span class="status low" id="risk-label">Low risk</span><h3 id="result-title">Your writing shows a distinct voice.</h3><p id="result-copy"></p></div></div><div class="signal-list" id="signal-list"></div><div class="passages" id="passages"></div><div class="modal-footer"><p>This is an indicator, not proof of AI use.</p><div><button id="revision" class="secondary">Revision support</button><button id="check-another" class="primary">Check another</button></div></div></div></section>
+<section class="auth-overlay" id="auth" aria-hidden="true"><div class="auth-modal"><button class="close" data-close-auth aria-label="Close">×</button><p class="eyebrow">YOUR VERITY ACCOUNT</p><h2 id="auth-title">Save your writing progress.</h2><p class="auth-copy">Keep reports, revisit your history, and unlock guided revision support.</p><form id="auth-form"><label id="name-field">Name<input id="auth-name" autocomplete="name" placeholder="Your first name" /></label><label>Email<input id="auth-email" type="email" autocomplete="email" required placeholder="you@example.com" /></label><label>Password<input id="auth-password" type="password" autocomplete="current-password" required minlength="8" placeholder="At least 8 characters" /></label><p id="auth-error" role="alert"></p><button class="primary" id="auth-submit">Create free account</button></form><button id="auth-switch" class="text-link">Already have an account? Sign in</button></div></section>
+<section class="revision-overlay" id="revision-modal" aria-hidden="true"><div class="auth-modal revision-modal"><button class="close" data-close-revision aria-label="Close">×</button><p class="eyebrow">REVISION SUPPORT</p><h2>Make the work more yours.</h2><p class="auth-copy">These prompts support your thinking—they do not rewrite your assignment.</p><div id="revision-prompts" class="prompts"></div></div></section>
+<script src="app.js"></script>
+</body></html>

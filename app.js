@@ -1,0 +1,34 @@
+const $ = selector => document.querySelector(selector);
+const textInput = $('#text-input'), count = $('#word-count'), fileInput = $('#file-input'), dropzone = $('#dropzone');
+let currentUser = null, lastReport = null, authMode = 'register';
+const words = text => text.trim() ? text.trim().split(/\s+/).length : 0;
+function updateCount(){ count.textContent = `${words(textInput.value)} words`; }
+textInput.addEventListener('input', updateCount);
+function api(url, options = {}) { return fetch(url, options).then(async r => { const data = r.status === 204 ? null : await r.json().catch(() => ({})); if (!r.ok) throw new Error(data.error || 'Something went wrong. Please try again.'); return data; }); }
+
+function openModal(el){ el.classList.add('open'); el.setAttribute('aria-hidden','false'); }
+function closeModal(el){ el.classList.remove('open'); el.setAttribute('aria-hidden','true'); }
+function setProfile(user){ currentUser = user; $('#profile').innerHTML = user ? `<span class="avatar">${user.name.slice(0,2).toUpperCase()}</span><span>${escapeHtml(user.name)}</span><button id="logout" class="header-auth">Sign out</button>` : `<span class="guest-label">Guest session</span><button id="open-auth" class="header-auth">Sign in</button>`; $('#profile').querySelector(user ? '#logout' : '#open-auth').addEventListener('click', user ? logout : () => showAuth('register')); if(user) loadHistory(); }
+function escapeHtml(value){ const d = document.createElement('div'); d.textContent = value; return d.innerHTML; }
+async function initialise(){ const me = await api('/api/me'); if(me.signedIn) setProfile(me); else setProfile(null); }
+initialise().catch(() => {});
+
+$('#browse').addEventListener('click', e => { e.stopPropagation(); fileInput.click(); });
+dropzone.addEventListener('click', () => fileInput.click());
+dropzone.addEventListener('keydown', e => { if(e.key === 'Enter' || e.key === ' ') fileInput.click(); });
+fileInput.addEventListener('change', () => { const file = fileInput.files[0]; if(file) $('#upload-label').textContent = file.name; });
+['dragenter','dragover'].forEach(type => dropzone.addEventListener(type, e => { e.preventDefault(); dropzone.classList.add('drag'); }));
+['dragleave','drop'].forEach(type => dropzone.addEventListener(type, e => { e.preventDefault(); dropzone.classList.remove('drag'); }));
+dropzone.addEventListener('drop', e => { fileInput.files = e.dataTransfer.files; const file = fileInput.files[0]; if(file) $('#upload-label').textContent = file.name; });
+
+$('#analyze').addEventListener('click', async () => { const form = new FormData(); form.append('text', textInput.value); if(fileInput.files[0]) form.append('file', fileInput.files[0]); const button = $('#analyze'); button.disabled = true; button.textContent = 'Checking…'; try { lastReport = await api('/api/analyse', { method:'POST', body:form }); displayReport(lastReport); openModal($('#results')); if(currentUser) loadHistory(); } catch(error) { textInput.focus(); textInput.placeholder = error.message; } finally { button.disabled = false; button.innerHTML = 'Analyse writing <span>→</span>'; } });
+function displayReport(report){ $('#score').textContent = report.score; $('#risk-label').textContent = report.level; $('#risk-label').className = `status ${report.score < 35 ? 'low' : 'review'}`; $('#result-title').textContent = report.headline; $('#result-copy').textContent = report.summary; $('#signal-list').innerHTML = report.signals.map(s => `<div><span class="signal-dot ${s.tone}"></span><p><strong>${escapeHtml(s.title)}</strong><small>${escapeHtml(s.detail)}</small></p></div>`).join(''); $('#passages').innerHTML = report.passages.length ? `<p class="label">PASSAGES TO CONSIDER</p>${report.passages.map(p=>`<blockquote>“${escapeHtml(p.text)}”<small>${escapeHtml(p.note)}</small></blockquote>`).join('')}` : ''; $('#revision').textContent = currentUser ? 'Revision support' : 'Sign in for revision'; }
+$('#close-results').addEventListener('click', () => closeModal($('#results'))); $('#check-another').addEventListener('click', () => { closeModal($('#results')); textInput.focus(); }); $('#results').addEventListener('click', e => { if(e.target === $('#results')) closeModal($('#results')); });
+
+function showAuth(mode){ authMode = mode; $('#auth-title').textContent = mode === 'register' ? 'Save your writing progress.' : 'Welcome back.'; $('#name-field').style.display = mode === 'register' ? '' : 'none'; $('#auth-submit').textContent = mode === 'register' ? 'Create free account' : 'Sign in'; $('#auth-switch').textContent = mode === 'register' ? 'Already have an account? Sign in' : 'New to Verity? Create an account'; $('#auth-error').textContent=''; openModal($('#auth')); }
+document.addEventListener('click', e => { if(e.target.matches('[data-open-auth]')) showAuth('register'); if(e.target.matches('[data-close-auth]')) closeModal($('#auth')); if(e.target.matches('[data-close-revision]')) closeModal($('#revision-modal')); });
+$('#auth-switch').addEventListener('click', () => showAuth(authMode === 'register' ? 'login' : 'register'));
+$('#auth-form').addEventListener('submit', async e => { e.preventDefault(); const payload = { name: $('#auth-name').value, email: $('#auth-email').value, password: $('#auth-password').value }; try { const user = await api(`/api/auth/${authMode}`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); setProfile(user); closeModal($('#auth')); if(user.saved) loadHistory(); } catch(error) { $('#auth-error').textContent=error.message; } });
+async function logout(){ await api('/api/auth/logout',{method:'POST'}); setProfile(null); $('#history-title').textContent='Nothing saved yet'; $('#history-list').textContent='Sign in to save reports and revisit them later.'; }
+async function loadHistory(){ const reports = await api('/api/history'); $('#history-title').textContent = reports.length ? 'Your writing activity' : 'Nothing saved yet'; $('#history-list').innerHTML = reports.length ? reports.map(r=>`<div class="recent-row"><span class="doc-icon">▤</span><div><strong>${escapeHtml(r.fileName || 'Writing check')}</strong><small>${new Date(r.createdAt).toLocaleDateString()}</small></div><span class="status ${r.score<35?'low':'review'}">${escapeHtml(r.level)}</span></div>`).join('') : '<span class="empty-history">Your saved reports will appear here.</span>'; $('#history-auth').style.display='none'; }
+$('#revision').addEventListener('click', async () => { if(!currentUser){ showAuth('register'); return; } try { const data = await api('/api/revision',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:textInput.value})}); $('#revision-prompts').innerHTML=data.prompts.map(p=>`<div>✦ <span>${escapeHtml(p)}</span></div>`).join(''); openModal($('#revision-modal')); } catch(error){ alert(error.message); } });
